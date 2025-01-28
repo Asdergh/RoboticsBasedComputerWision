@@ -1,6 +1,5 @@
 import torch as th
 import numpy as np
-import tqdm as tq
 
 from torch.nn import (
     Upsample,
@@ -14,7 +13,8 @@ from torch.nn import (
     LayerNorm,
     ModuleDict,
     BatchNorm2d,
-    Tanh
+    Softmax2d,
+    Sigmoid
 )
 
 
@@ -98,6 +98,8 @@ class TransformerEncoder(Module):
         
         super().__init__()
         self._img_sep = ImagePatchSeparation(img_size=img_size, patch_s=patch_s)
+        self.p1 = Linear(in_features=(patch_s ** 2) * 3, out_features=att_features)
+        self.p2 = Linear(in_features=att_features, out_features=out_features)
         self._att = Sequential(
             PatchMulHeadAttention(patch_n=self._img_sep.n, in_features=(patch_s ** 2) * 3, out_features=att_features),
             LayerNorm(normalized_shape=att_features)
@@ -115,13 +117,14 @@ class TransformerEncoder(Module):
 
         img_sep = self._img_sep(inputs)
         flatten = Flatten(start_dim=2)(img_sep)
-        att = self._att(flatten)
+        att = th.add(self._att(flatten), self.p1(flatten))
         x = att
-
         for layer in self._linear_projections:
             x = layer(x)
+
+        projection = th.add(x, self.p2(att))
         
-        return self._act(x)
+        return self._act(projection)
 
 
 class MaskTransformer(Module):
@@ -155,7 +158,6 @@ class UpSampleNet(Module):
         super().__init__()
         ln = int((img_size / patch_s) / 2) - 1
         n = int((img_size ** 2) / (patch_s ** 2))
-        print(ln)
         self.cls = cls_n
         self.patch_s = patch_s
 
@@ -164,7 +166,7 @@ class UpSampleNet(Module):
             Sequential(
                 Upsample(scale_factor=2),
                 BatchNorm2d(num_features=cls_n),
-                Tanh()
+                Sigmoid()
             )
         for _ in range(ln)])
         self._att = Softmax(dim=2)
@@ -179,35 +181,55 @@ class UpSampleNet(Module):
         
         return self._att(x)
 
+
+class Segformer(Module):
+
+    def __init__(
+        self,
+        img_size: int,
+        att_out_features: int,
+        hiden_features: int,
+        tr_out_features: int,
+        cls_n: int,
+        patch_s: int = 16
+
+    ) -> None:
+        
+        super().__init__()
+        self._transformer_encoder = TransformerEncoder(
+            img_size=img_size,
+            patch_s=patch_s,
+            att_features=att_out_features,
+            hiden_features=hiden_features,
+            out_features=tr_out_features
+        )
+
+        self._mask_transformer = MaskTransformer(
+            in_features=tr_out_features,
+            cls_n=cls_n
+        )
+
+        self._up_sample = UpSampleNet(
+            cls_n=cls_n,
+            patch_s=patch_s,
+            img_size=img_size
+        )
+    
+    def total_params_n(self) -> str:
+        
+        total_n = 0
+        for params in list(self.parameters()):
+            total_n += th.prod(th.Tensor(list(params.size())))
+        
+        return f" total number of params: [{int(total_n)}]"
+            
+    def __call__(self, inputs: th.Tensor) -> th.Tensor:
+        
+        tr_encodings = self._transformer_encoder(inputs)
+        mask_weights = self._mask_transformer(tr_encodings)
+        return self._up_sample(mask_weights)
+
+
+
         
         
-
-        
-
-
-if __name__ == "__main__":
-
-    A = th.normal(0.12, 1.12, (100, 3, 128, 128))
-    transformer_encoder = TransformerEncoder(
-        img_size=128,
-        patch_s=16,
-        att_features=128,
-        hiden_features=64,
-        out_features=32
-    )
-    mast_transformer = MaskTransformer(
-        in_features=32,
-        cls_n=45
-    )
-    up_sample = UpSampleNet(
-        cls_n=45,
-        patch_s=16,
-        img_size=128
-    )
-
-    for i in tq.tqdm(range(100), colour="GREEN"):
-
-        tr_out = transformer_encoder(A)
-        mask_tr_out = mast_transformer(tr_out)
-        up_sample_out = up_sample(mask_tr_out)
-        print(up_sample_out.size())

@@ -20,7 +20,7 @@ from torch.nn import (
 from torch.optim import Adam
 plt.style.use("dark_background")
 
-class FCNSegmentationTrainer:
+class SegmentationTrainer:
 
     def __init__(
         self,
@@ -41,7 +41,7 @@ class FCNSegmentationTrainer:
         self.train_loader = DataLoader(dataset=train_set, batch_size=batch_size)
         # self.train_loader = DataLoader(dataset=val_and_test, batch_size=batch_size)
 
-        self.optim = Adam(params=self.model.parameters(), lr=0.01)
+        self.optim = Adam(params=self.model.parameters(), lr=0.1)
         self.loss = BCELoss()
     
 
@@ -122,12 +122,15 @@ class FCNSegmentationTrainer:
         local_loss = 0.0
         for (image, seg_masks) in self.train_loader:
             
+
             self.optim.zero_grad()
             out = self.model(image)
             loss = 0.0
-            for (mask_pred, mask_target) in zip(out, seg_masks):
-                loss += self.loss(mask_pred, mask_target)
+            for (pred_batch, target_batch) in zip(out, seg_masks):
+                for (pred_mask, target_mask) in zip(pred_batch, target_batch):
+                    loss += self.loss(pred_mask, target_mask)
             
+            loss /= (out.size()[0] * out.size()[1])
             loss.backward()
             self.optim.step()
             local_loss += loss
@@ -146,7 +149,7 @@ class FCNSegmentationTrainer:
             local_loss = self._train_on_epoch(epoch=epoch)
             loss.append(local_loss)
             self._save_out_samples(epoch=epoch, gen_path=gen_path)
-            self._save_activations(epoch=epoch, gen_path=gen_path)
+            # self._save_activations(epoch=epoch, gen_path=gen_path)
 
             print(f"Epoch: [{epoch}], Loss: [{local_loss}]")
         
