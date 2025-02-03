@@ -1,5 +1,5 @@
 ﻿# Discription
- 
+ This is my playground for testing alghotims and deep learning models applied to computer vision for robotics that was developde by me or others. Farthere mode i will emplement some os this models into my robotics projects. 
 ```
 .
 ├── README.md
