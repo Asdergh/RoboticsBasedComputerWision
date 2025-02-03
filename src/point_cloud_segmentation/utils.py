@@ -9,13 +9,8 @@ plt.style.use("dark_background")
 from open3d.geometry import PointCloud
 from open3d.utility import Vector3dVector
 from open3d.visualization import Visualizer
-from torch.utils.data import (
-    Dataset,
-    DataLoader
-)
 
-
-def _colorize_pcd_(
+def _show_from_file_(
     path: str,
     labels_n: int
 ) -> None:
@@ -42,6 +37,28 @@ def _colorize_pcd_(
     vis.get_render_option().background_color = [0, 0, 0]
     vis.add_geometry(pcd_o3d)
     vis.run()
+
+
+def _show_from_pt_(
+    path: str
+) -> None:
+    
+    pcd_object = PointCloud()
+    vis = Visualizer()
+    vis.create_window(visible=True)
+    opt = vis.get_render_option()
+    opt.background_color = [0, 0, 0]
+    opt.show_coordinate_frame = True
+
+    pcd, _, colors = th.load(path, map_location="cpu")
+    print(pcd.size(), colors.size())
+    pcd_object.points = Vector3dVector(pcd.squeeze(dim=0).numpy())
+    pcd_object.colors = Vector3dVector(colors.squeeze(dim=0).numpy())
+
+    vis.add_geometry(pcd_object)
+    vis.run()
+
+
     
 
 class SSPCDatFormater():
@@ -185,52 +202,12 @@ class SSPCDatFormater():
             tar_path_labeled = tar_path_unlabeled.replace("unlabeled", "labeled")
             th.save(pcd_pj_, tar_path_unlabeled)
             th.save(mask_, tar_path_labeled)
-        
 
 
-class SSPCDataset(Dataset):
 
-    def __init__(
-        self,
-        source_folder: str,
-        split: str
-    ):
-
-        super().__init__()
-        velodyne_unlabeled = os.path.join(
-            source_folder,
-            split,
-            "velodyne_unlabeled"
-        )
-        self.paths_ = [
-            os.path.join(velodyne_unlabeled, path)
-            for path in os.listdir(velodyne_unlabeled)
-        ]
-    
-    def __len__(self) -> None:
-        return len(self.paths_)
-
-    def __getitem__(self, idx: int) -> tuple[th.Tensor]:
-
-        unlabeled_path = self.paths_[idx]
-        labeled_path = unlabeled_path.replace("velodyne_unlabeled", "velodyne_labeled")
-        
-        return (
-            th.load(unlabeled_path, weights_only=True),
-            th.load(labeled_path, weights_only=True)
-        )
-        
-        
 
 if __name__ == "__main__":
 
-    formater = SSPCDatFormater(
-        source_folder="C:\\Users\\1\\Desktop\\SemanticSTF",
-        split="train",
-        target_root="C:\\Users\\1\\Desktop\\PointCloudData",
+    _show_from_pt_(
+        path="C:\\Users\\1\\Downloads\\pcd_samples (3).pt",
     )
-
-
-
-
-
