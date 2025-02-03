@@ -1,4 +1,5 @@
-﻿# RoboticsBasedComputerWision
+﻿# Discription
+ 
 ```
 .
 ├── README.md
@@ -15,19 +16,6 @@
 │   │   │   ├── patch_segformer.py
 │   │   │   ├── segformer.py
 │   │   │   ├── storage_segmenter_model
-│   │   │   │   ├── generated_samples
-│   │   │   │   │   ├── MasksOn_0Epoch.png
-│   │   │   │   │   ├── MasksOn_10Epoch.png
-│   │   │   │   │   ├── MasksOn_11Epoch.png
-│   │   │   │   │   ├── MasksOn_1Epoch.png
-│   │   │   │   │   ├── MasksOn_2Epoch.png
-│   │   │   │   │   ├── MasksOn_3Epoch.png
-│   │   │   │   │   ├── MasksOn_4Epoch.png
-│   │   │   │   │   ├── MasksOn_5Epoch.png
-│   │   │   │   │   ├── MasksOn_6Epoch.png
-│   │   │   │   │   ├── MasksOn_7Epoch.png
-│   │   │   │   │   ├── MasksOn_8Epoch.png
-│   │   │   │   │   └── MasksOn_9Epoch.png
 │   │   │   │   ├── model_params (2).pt
 │   │   │   │   └── model_params.pt
 │   │   │   └── test.py
